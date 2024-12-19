@@ -1,0 +1,238 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>用戶管理</h1>
+  <button type="button" class="btn btn-success btn-lg" onclick="showAddModal()">
+    新增
+  </button>
+</div>
+
+<table class="table table-bordered">
+  <form id="queryForm">
+    <thead class="thead-light">
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <label class="form-label">用戶編號</label>
+        </td>
+        <td>
+          <input list="user_data" type="text" class="form-control" id="userId" name="userId" />
+          <datalist id="user_data">
+            {% for user in user_data %}
+            <option label="{{ user.User_Name }}" value="{{ user.User_Id }}"></option>
+            {% endfor %}
+          </datalist>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" class="text-center">
+          <button type="button" class="btn btn-primary btn-lg" onclick="queryForm()">
+            查詢
+          </button>
+          <button type="button" class="btn btn-secondary btn-lg" onclick="clearForm()">
+            清除
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </form>
+</table>
+
+<div id="results">
+  {% if userDatas %}
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <button type="button" class="btn btn-secondary btn-lg" onclick="exportForm()">
+      匯出
+    </button>
+  </div>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>用戶編號</th>
+        <th>用戶名稱</th>
+        <th>LINE_ID</th>
+        <th>銀行帳號</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for userData in userDatas %}
+      <tr>
+        <td>{{ userData['User_Id'] }}</td>
+        <td>{{ userData['Trans_Amount'] }}</td>
+        <td>{{ userData['Trans_Date'] }}</td>
+        <td>{{ userData['Remark'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>沒有查詢結果。</p>
+  {% endif %}
+</div>
+
+<table id="addModalTable">
+  <tr>
+    <td>
+      <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addModalLabel">新增項目</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="addForm">
+                <div class="mb-3">
+                  <label for="newUserId" class="form-label">用戶編號</label>
+                  <label style="color: red">*</label>
+                  <input type="text" class="form-control" id="newUserId" name="newUserId" required />
+                </div>
+                <div class="mb-3">
+                  <label for="newUserName" class="form-label">用戶名稱</label>
+                  <label style="color: red">*</label>
+                  <input type="text" class="form-control" id="newUserName" name="newUserName" required />
+                </div>
+                <div class="mb-3">
+                  <label for="newLineId" class="form-label">LINE_ID</label>
+                  <input type="text" class="form-control" id="newLineId" name="newLineId" />
+                </div>
+                <div class="mb-3">
+                  <label for="newBankId" class="form-label">銀行帳號</label>
+                  <input type="text" class="form-control" id="newBankId" name="newBankId" />
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-primary" onclick="save(event)" form="addForm">
+                    提交
+                  </button>
+                  <button type="button" class="btn btn-secondary" onclick="hideAddModal()">
+                    取消
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<script>
+  // 當 DOM 完全加載後，呼叫 init 函數
+  document.addEventListener("DOMContentLoaded", init);
+
+  // 初始化函數
+  function init() {
+    queryForm();
+  }
+
+  function queryForm() {
+    showLoading("查詢中", "");
+    const userId = document.getElementById("userId").value;
+
+    fetch("/UserMgr/UserMgr_query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        closeLoading();
+        const resultsDiv = document.getElementById("results");
+        if (data.userDatas.length > 0) {
+          let content = `<div class="d-flex justify-content-between align-items-center mb-2"><h1>總用戶: <span id="totalAmount">${data.userDatas.length}</span></h1><button type="button" class="btn btn-secondary btn-lg" onclick="exportForm()">匯出</button></div>`;
+          content +=
+            '<table class="table table-striped"><thead><tr><th>用戶編號</th><th>用戶名稱</th><th>LINE_ID</th><th>銀行帳號</th></tr></thead><tbody>';
+          data.userDatas.forEach((userData) => {
+            content += `<tr><td>${userData.User_Id}</td><td>${userData.User_Name}</td><td>${userData.Line_Id}</td><td>${userData.Bank_Id}</td></tr>`;
+          });
+          content += "</tbody></table>";
+          resultsDiv.innerHTML = content;
+        } else {
+          resultsDiv.innerHTML = "<p>沒有查詢結果。</p>";
+        }
+      })
+      .catch((error) => console.error("Error during query:", error));
+  }
+
+  function clearForm() {
+    document.getElementById("userId").value = "";
+    document.getElementById("results").innerHTML = "<p>沒有查詢結果。</p>";
+  }
+
+  function showAddModal() {
+    document.getElementById("addForm").reset();
+
+    const addModal = new bootstrap.Modal(document.getElementById("addModal"));
+    addModal.show();
+  }
+
+  function hideAddModal() {
+    document.getElementById("addForm").reset();
+
+    const addModal = bootstrap.Modal.getInstance(document.getElementById("addModal"));
+    addModal.hide();
+  }
+
+  function save(event) {
+    event.preventDefault(); // 阻止默認的表單提交行為
+
+    const newUserId = document.getElementById("newUserId").value.toUpperCase();
+    const newUserName = document.getElementById("newUserName").value;
+    const newLineId = document.getElementById("newLineId").value;
+    const newBankId = document.getElementById("newBankId").value;
+
+    if (newUserId && newUserName) {
+      fetch("/UserMgr/UserMgr_append", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newUserId, newUserName, newLineId, newBankId }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            showSuccess("成功", data.message);
+            document.getElementById("addForm").reset();
+          } else {
+            showError("失敗", data.message);
+          }
+        });
+    } else {
+      showWarning("提示", "請填寫完整資料");
+    }
+  }
+
+  function exportForm() {
+    const resultsDiv = document.getElementById("results");
+    if (resultsDiv.innerHTML.includes("沒有查詢結果。")) {
+      showWarning("提示", "沒有可匯出資料");
+      return;
+    }
+
+    const userId = document.getElementById("userId").value;
+
+    fetch("/UserMgr/UserMgr_export", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId }),
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "User.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+      })
+      .catch((error) => console.error("Error exporting data:", error));
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+/* 避免導航欄重疊 */
+body {
+  padding-top: 56px;
+}
+
+/* 自定義內容區域 */
+.container {
+  margin-top: 20px;
+}
+
+/* 調整按鈕的間距 */
+.btn {
+  margin-top: 10px;
+}

@@ -1,0 +1,4 @@
+Flask
+pandas
+openpyxl
+line-bot-sdk

@@ -1,0 +1,311 @@
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>交易明細</h1>
+  <button type="button" class="btn btn-success btn-lg" onclick="showAddModal()">
+    新增
+  </button>
+</div>
+
+<table class="table table-bordered">
+  <form id="queryForm">
+    <thead class="thead-light">
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <label class="form-label">用戶編號</label>
+        </td>
+        <td>
+          <input list="user_data" type="text" class="form-control" id="userId" name="userId" />
+          <datalist id="user_data">
+            {% for user in user_data %}
+            <option label="{{ user.User_Name }}" value="{{ user.User_Id }}"></option>
+            {% endfor %}
+          </datalist>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label class="form-label">交易類型</label>
+        </td>
+        <td>
+          <div class="form-check form-check-inline">
+            <input type="checkbox" class="form-check-input" id="transTypeIn" name="transType" value="I" />
+            <label class="form-check-label" for="transTypeIn">入帳</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input type="checkbox" class="form-check-input" id="transTypeOut" name="transType" value="O" />
+            <label class="form-check-label" for="transTypeOut">回款</label>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label class="form-label">日期區間</label>
+        </td>
+        <td>
+          <div class="d-flex align-items-center">
+            <input type="date" class="form-control" id="startDate" name="startDate" />
+            <span>~</span>
+            <input type="date" class="form-control" id="endDate" name="endDate" />
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" class="text-center">
+          <button type="button" class="btn btn-primary btn-lg" onclick="queryForm()">
+            查詢
+          </button>
+          <button type="button" class="btn btn-secondary btn-lg" onclick="clearForm()">
+            清除
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </form>
+</table>
+
+<div id="results">
+  {% if transDatas %}
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h1>總金額: <span>{{ transDatas.total_Amount }}</span></h1>
+    <button type="button" class="btn btn-secondary btn-lg" onclick="exportForm()">
+      匯出
+    </button>
+  </div>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>用戶名稱</th>
+        <th>交易金額</th>
+        <th>交易日期</th>
+        <th>交易類型</th>
+        <th>交易公司</th>
+        <th>交易備註</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transaction in transDatas.Transactions %}
+      <tr>
+        <td>{{ transaction['User_Id'] ~ transaction['User_Name'] }}</td>
+        <td>{{ transaction['Trans_Amount'] }}</td>
+        <td>{{ transaction['Trans_Date'] }}</td>
+        <td>{{ transaction['Trans_Type'] }}</td>
+        <td>{{ transaction['Trans_Company'] }}</td>
+        <td>{{ transaction['Remark'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>沒有查詢結果。</p>
+  {% endif %}
+</div>
+
+<table id="addModalTable">
+  <tr>
+    <td>
+      <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addModalLabel">新增項目</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="addForm">
+                <div class="mb-3">
+                  <label for="newUserId" class="form-label">用戶編號</label>
+                  <label style="color: red">*</label>
+                  <input list="user_data" type="text" class="form-control" id="newUserId" name="newUserId" />
+                  <datalist id="user_data">
+                    {% for user in user_data %}
+                    <option label="{{ user.User_Name }}" value="{{ user.User_Id }}"></option>
+                    {% endfor %}
+                  </datalist>
+                </div>
+                <div class="mb-3">
+                  <label for="newAmount" class="form-label">交易金額</label>
+                  <label style="color: red">*</label>
+                  <input type="number" class="form-control" id="newAmount" name="newAmount" required />
+                </div>
+                <div class="mb-3">
+                  <label for="newDate" class="form-label">交易日期</label>
+                  <label style="color: red">*</label>
+                  <input type="date" class="form-control" id="newDate" name="newDate" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">交易類型</label>
+                  <label style="color: red">*</label>
+                  <div style="display: flex; align-items: center;">
+                    <div style="margin-right: 10px;">
+                      <input type="radio" id="newTransTypeIn" name="newTransType" value="I" required />
+                      <label for="newTransTypeIn">入帳</label>
+                    </div>
+                    <div>
+                      <input type="radio" id="newTransTypeOut" name="newTransType" value="O" required checked />
+                      <label for="newTransTypeOut">回款</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="newRemark" class="form-label">備註</label>
+                  <input type="text" class="form-control" id="newRemark" name="newRemark" />
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-primary" onclick="save(event)" form="addForm">
+                    提交
+                  </button>
+                  <button type="button" class="btn btn-secondary" onclick="hideAddModal()">
+                    取消
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<script>
+  document.addEventListener("DOMContentLoaded", init);
+
+  function init() {
+    document.getElementById("startDate").value = "";
+    document.getElementById("endDate").value = "";
+    queryForm();
+  }
+
+  function queryForm() {
+    showLoading("查詢中", "");
+    const userId = document.getElementById("userId").value;
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+    const transType = [];
+
+    if (document.getElementById("transTypeIn").checked) {
+      transType.push("I");
+    }
+    if (document.getElementById("transTypeOut").checked) {
+      transType.push("O");
+    }
+
+    fetch("/Transaction/Transaction_query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, startDate, endDate, transType }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        closeLoading();
+        const resultsDiv = document.getElementById("results");
+        if (data.transDatas.Transactions.length > 0) {
+          let content = `<div class="d-flex justify-content-between align-items-center mb-2"><h1>總金額: <span>${data.transDatas.total_Amount}</span></h1><button type="button" class="btn btn-secondary btn-lg" onclick="exportForm()">匯出</button></div>`;
+          content +=
+            '<table class="table table-striped"><thead><tr><th>用戶編號</th><th>用戶名稱</th><th>交易金額</th><th>交易日期</th><th>交易類型</th><th>交易公司</th><th>交易備註</th></tr></thead><tbody>';
+          data.transDatas.Transactions.forEach((transaction) => {
+            content += `<tr><td>${transaction.User_Id}</td><td>${transaction.User_Name}</td><td>${transaction.Trans_Amount}</td><td>${transaction.Trans_Date}</td><td>${transaction.Trans_Type}</td><td>${transaction.Trans_Company}</td><td>${transaction.Remark}</td></tr>`;
+          });
+          content += "</tbody></table>";
+          resultsDiv.innerHTML = content;
+        } else {
+          resultsDiv.innerHTML = "<p>沒有查詢結果。</p>";
+        }
+      })
+      .catch((error) => console.error("Error during query:", error));
+  }
+
+  function clearForm() {
+    document.getElementById("userId").value = "";
+    document.getElementById("startDate").value = "";
+    document.getElementById("endDate").value = "";
+    document.getElementById("transTypeIn").checked = false;
+    document.getElementById("transTypeOut").checked = false;
+    document.getElementById("results").innerHTML = "<p>沒有查詢結果。</p>";
+  }
+
+  function showAddModal() {
+    document.getElementById("addForm").reset();
+
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("newDate").value = today;
+
+    const addModal = new bootstrap.Modal(document.getElementById("addModal"));
+    addModal.show();
+  }
+
+  function hideAddModal() {
+    document.getElementById("addForm").reset();
+
+    const addModal = bootstrap.Modal.getInstance(document.getElementById("addModal"));
+    addModal.hide();
+  }
+
+  function save(event) {
+    event.preventDefault(); // 阻止默認的表單提交行為
+
+    const newUserId = document.getElementById("newUserId").value.toUpperCase();
+    const newAmount = document.getElementById("newAmount").value;
+    const newDate = document.getElementById("newDate").value;
+    const newTransType = document.querySelector('input[name="newTransType"]:checked').value;
+    const newRemark = document.getElementById("newRemark").value;
+
+    if (newUserId && newAmount && newDate && newTransType) {
+      fetch("/Transaction/Transaction_append", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newUserId, newAmount, newDate, newTransType, newRemark }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            showSuccess("成功", data.message);
+            document.getElementById("addForm").reset();
+          } else {
+            showError("失敗", data.message);
+          }
+        });
+    } else {
+      showWarning("提示", "請填寫完整資料");
+    }
+  }
+
+  function exportForm() {
+    const resultsDiv = document.getElementById("results");
+    if (resultsDiv.innerHTML.includes("沒有查詢結果。")) {
+      showWarning("提示", "沒有可匯出資料");
+      return;
+    }
+
+    const userId = document.getElementById("userId").value;
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
+
+    fetch("/Transaction/Transaction_export", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, startDate, endDate }),
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", "Transaction.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+      })
+      .catch((error) => console.error("Error exporting data:", error));
+  }
+</script>
+{% endblock %}
